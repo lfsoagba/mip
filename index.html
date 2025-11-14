@@ -1,375 +1,189 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitoramento Agro MT</title>
+
     <meta name="theme-color" content="#064e3b">
     <link rel="manifest" href="manifest.json">
-    <!-- Tailwind CSS (Estilo) -->
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Vue.js (Lógica) -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- jsPDF (Gerar PDF) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <style>
-        /* Ajuste para Alto Contraste no Sol */
-        body { background-color: #022c22; color: #ecfccb; } /* Verde muito escuro + Verde Limão claro */
-        select, input { background-color: #064e3b; color: white; border: 1px solid #34d399; }
-        select:focus, input:focus { outline: 2px solid #34d399; }
-        .is-invalid { border-color: #ef4444 !important; border-width: 2px !important; } /* Borda Vermelha forte */
-        .btn-action { background-color: #166534; color: white; }
+        body {
+            background-color: #022c22;
+            color: #ecfccb;
+        }
+
+        select,
+        input,
+        textarea {
+            background-color: #064e3b;
+            color: white;
+            border: 1px solid #34d399;
+        }
+
+        select:focus,
+        input:focus,
+        textarea:focus {
+            outline: 2px solid #34d399;
+        }
+
+        .is-invalid {
+            border-color: #ef4444 !important;
+            border-width: 2px !important;
+        }
     </style>
 </head>
+
 <body class="font-sans pb-20">
 
-<div id="app" class="max-w-md mx-auto p-4">
-    
-    <!-- Cabeçalho -->
-    <header class="mb-6 text-center border-b border-green-700 pb-4">
-        <h1 class="text-2xl font-bold text-green-400 uppercase tracking-wider">Monitoramento MT</h1>
-        <p class="text-xs text-green-200 mt-1">Geração de Relatório Offline</p>
-    </header>
+    <div id="app" class="max-w-md mx-auto p-4">
 
-    <!-- Campos Obrigatórios -->
-    <section class="space-y-4 mb-8">
-        <div>
-            <label class="block text-sm font-bold mb-1 text-green-300">Técnico Responsável (Obrigatório)</label>
-            <input v-model.trim="form.tecnico" @input="form.tecnico = form.tecnico.toUpperCase()" type="text" 
-                   class="w-full p-3 rounded uppercase" :class="{'is-invalid': errors.tecnico}" placeholder="Nome do Técnico">
-        </div>
+        <header class="mb-6 text-center border-b border-green-700 pb-4">
+            <h1 class="text-2xl font-bold text-green-400 uppercase tracking-wider">Monitoramento MT</h1>
+            <p class="text-xs text-green-200 mt-1">Geração de Relatório Offline</p>
+        </header>
 
-        <div class="grid grid-cols-2 gap-4">
+        <!-- CAMPOS PRINCIPAIS -->
+        <section class="space-y-4 mb-8">
             <div>
-                <label class="block text-sm font-bold mb-1 text-green-300">Data (Obrigatório)</label>
-                <input v-model="form.data" type="date" :max="today" 
-                       class="w-full p-3 rounded" :class="{'is-invalid': errors.data}">
-            </div>
-            <div>
-                <label class="block text-sm font-bold mb-1 text-green-300">Talhão (Obrigatório)</label>
-                <input v-model.trim="form.talhao" type="text" 
-                       class="w-full p-3 rounded" :class="{'is-invalid': errors.talhao}" placeholder="Ex: jai.01">
-            </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-bold mb-1 text-green-300">Cultura (Obrigatório)</label>
-                <select v-model="form.cultura" @change="resetItems" 
-                        class="w-full p-3 rounded" :class="{'is-invalid': errors.cultura}">
-                    <option value="">Selecione</option>
-                    <option value="Soja">Soja</option>
-                    <option value="Milho">Milho</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-bold mb-1 text-green-300">Pontos Coletados (Obrigatório)</label>
-                <input v-model.number="form.pontos" type="number" 
-                       class="w-full p-3 rounded" :class="{'is-invalid': errors.pontos}" placeholder="0">
-            </div>
-        </div>
-    </section>
-
-    <!-- Seção de Fotos -->
-    <section class="mb-8 p-4 bg-green-900 border border-green-700 rounded-lg shadow-md">
-        <h2 class="text-xl font-bold text-green-400 mb-3">Fotos (Máx: 5)</h2>
-        <input type="file" @change="handleFileUpload" accept="image/*" multiple 
-               class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
-        <p class="text-xs text-green-300 mt-1">Limite: 5 fotos (Máx. 10MB cada)</p>
-
-        <!-- Pré-visualização das Fotos -->
-        <div class="mt-4 flex flex-wrap gap-2">
-            <div v-for="(file, index) in photoFiles" :key="index" class="relative w-24 h-24">
-                <img :src="file.dataURL" class="w-full h-full object-cover rounded border border-green-500" alt="Pré-visualização da foto">
-                <button @click="removePhoto(index)" class="absolute top-[-5px] right-[-5px] bg-red-600 text-white rounded-full h-5 w-5 text-xs flex items-center justify-center font-bold">×</button>
-            </div>
-        </div>
-    </section>
-
-
-    <!-- Botão Adicionar Item -->
-    <div class="flex justify-between items-center mb-4 border-t border-green-700 pt-4">
-        <h2 class="text-xl font-bold text-green-400">Ocorrências</h2>
-        <button @click="addItem" class="bg-green-500 text-black font-bold py-2 px-4 rounded-full text-2xl shadow-lg active:bg-green-400 hover:bg-green-400 transition">+</button>
-    </div>
-
-    <!-- Lista Dinâmica -->
-    <div class="space-y-6">
-        <!-- V-FOR e Estrutura de Itens -->
-        <div v-for="(item, index) in items" :key="index" class="bg-green-900 border border-green-700 p-4 rounded-lg shadow-md relative">
-            <button @click="removeItem(index)" class="absolute top-2 right-2 text-red-400 font-bold text-xl p-2">×</button>
-
-            <!-- A. Tipo -->
-            <div class="mb-3 pr-8">
-                <label class="block text-xs text-green-300">Categoria</label>
-                <select v-model="item.tipo" class="w-full p-2 rounded mt-1">
-                    <option value="Praga">Praga</option>
-                    <option value="Doença">Doença</option>
-                    <option value="Daninha">Daninha</option>
-                </select>
+                <label class="block text-sm font-bold mb-1 text-green-300">Técnico Responsável</label>
+                <input v-model.trim="form.tecnico" @input="form.tecnico = form.tecnico.toUpperCase()" type="text"
+                    class="w-full p-3 rounded uppercase" :class="{'is-invalid': errors.tecnico}"
+                    placeholder="Nome do Técnico">
             </div>
 
-            <!-- B. Nome (Lista Dependente) -->
-            <div class="mb-3" v-if="item.tipo">
-                <label class="block text-xs text-green-300">Identificação</label>
-                <select v-model="item.nome" class="w-full p-2 rounded mt-1">
-                    <option v-for="nome in getList(item.tipo)" :value="nome">{{ nome }}</option>
-                </select>
-            </div>
-
-            <!-- C. Condicionais -->
-            <div v-if="item.nome" class="bg-green-800 p-3 rounded mt-2 border border-green-700">
-                
-                <!-- Lógica PRAGA -->
-                <div v-if="item.tipo === 'Praga'">
-                    <!-- Oviposição (Para todas as pragas) -->
-                    <div class="flex items-center mb-3">
-                        <input type="checkbox" v-model="item.oviposicao" :id="'ovi'+index" class="w-5 h-5 mr-2 accent-green-500">
-                        <label :for="'ovi'+index" class="font-bold text-white">Presença de Oviposição</label>
-                    </div>
-
-                    <!-- Mosca Branca -->
-                    <div v-if="isMoscaBranca(item.nome)">
-                        <label class="block text-xs text-green-300">Nível de Infestação</label>
-                        <select v-model="item.nivel" class="w-full p-2 rounded mt-1">
-                            <option>Baixo</option><option>Médio</option><option>Alto</option>
-                        </select>
-                    </div>
-
-                    <!-- Percevejo -->
-                    <div v-else-if="isPercevejo(item.nome)">
-                        <label class="block text-xs text-green-300">Fase</label>
-                        <select v-model="item.fase" class="w-full p-2 rounded mt-1">
-                            <option>Ninfa</option><option>Adulto</option>
-                        </select>
-                    </div>
-
-                    <!-- Outras Pragas -->
-                    <div v-else class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs text-green-300">Qtd.</label>
-                            <input v-model.number="item.qtd" type="number" class="w-full p-2 rounded mt-1">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-green-300">Tamanho</label>
-                            <select v-model="item.tamanho" class="w-full p-2 rounded mt-1">
-                                <option>Pequena</option><option>Média</option><option>Grande</option>
-                            </select>
-                        </div>
-                    </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-green-300">Data</label>
+                    <input v-model="form.data" type="date" :max="today"
+                        class="w-full p-3 rounded" :class="{'is-invalid': errors.data}">
                 </div>
 
-                <!-- Lógica DOENÇA ou DANINHA -->
-                <div v-if="item.tipo === 'Doença' || item.tipo === 'Daninha'">
-                    <label class="block text-xs text-green-300">Nível de Infestação</label>
-                    <select v-model="item.nivel" class="w-full p-2 rounded mt-1">
-                        <option>Baixo</option><option>Médio</option><option>Alto</option>
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-green-300">Talhão</label>
+                    <input v-model.trim="form.talhao" type="text"
+                        class="w-full p-3 rounded" :class="{'is-invalid': errors.talhao}" placeholder="Ex.: JAI.01">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-green-300">Cultura</label>
+                    <select v-model="form.cultura" @change="resetItems"
+                        class="w-full p-3 rounded" :class="{'is-invalid': errors.cultura}">
+                        <option value="">Selecione</option>
+                        <option value="Soja">Soja</option>
+                        <option value="Milho">Milho</option>
                     </select>
                 </div>
 
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-green-300">Pontos Coletados</label>
+                    <input v-model.number="form.pontos" type="number"
+                        class="w-full p-3 rounded" :class="{'is-invalid': errors.pontos}" placeholder="0">
+                </div>
+            </div>
+        </section>
+
+        <!-- CAMPO DE COMENTÁRIOS (NOVO) -->
+        <section class="mb-8 p-4 bg-green-900 border border-green-700 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold text-green-400 mb-3">Comentários Gerais</h2>
+            <textarea v-model="form.comentarios" rows="4"
+                class="w-full p-3 rounded bg-green-800 border border-green-600"
+                placeholder="Observações adicionais..."></textarea>
+        </section>
+
+        <!-- OCORRÊNCIAS -->
+        <div class="flex justify-between items-center mb-4 border-t border-green-700 pt-4">
+            <h2 class="text-xl font-bold text-green-400">Ocorrências</h2>
+            <button @click="addItem"
+                class="bg-green-500 text-black font-bold py-2 px-4 rounded-full text-2xl shadow-lg">+</button>
+        </div>
+
+        <div class="space-y-6">
+            <div v-for="(item, index) in items" :key="index"
+                class="bg-green-900 border border-green-700 p-4 rounded-lg shadow-md relative">
+
+                <button @click="removeItem(index)"
+                    class="absolute top-2 right-2 text-red-400 font-bold text-xl p-2">×</button>
+
+                <div class="mb-3 pr-8">
+                    <label class="block text-xs text-green-300">Categoria</label>
+                    <select v-model="item.tipo" class="w-full p-2 rounded mt-1">
+                        <option value="Praga">Praga</option>
+                        <option value="Doença">Doença</option>
+                        <option value="Daninha">Daninha</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" v-if="item.tipo">
+                    <label class="block text-xs text-green-300">Identificação</label>
+                    <select v-model="item.nome" class="w-full p-2 rounded mt-1">
+                        <option v-for="nome in getList(item.tipo)" :value="nome">{{ nome }}</option>
+                    </select>
+                </div>
+
+                <div v-if="item.nome" class="bg-green-800 p-3 rounded mt-2 border border-green-700">
+                    <div v-if="item.tipo === 'Praga'">
+
+                        <div class="flex items-center mb-3">
+                            <input type="checkbox" v-model="item.oviposicao" :id="'ovi'+index"
+                                class="w-5 h-5 mr-2 accent-green-500">
+                            <label :for="'ovi'+index" class="font-bold text-white">Presença de Oviposição</label>
+                        </div>
+
+                        <div v-if="isMoscaBranca(item.nome)">
+                            <label class="block text-xs text-green-300">Nível de Infestação</label>
+                            <select v-model="item.nivel" class="w-full p-2 rounded mt-1">
+                                <option>Baixo</option>
+                                <option>Médio</option>
+                                <option>Alto</option>
+                            </select>
+                        </div>
+
+                        <div v-else-if="isPercevejo(item.nome)">
+                            <label class="block text-xs text-green-300">Fase</label>
+                            <select v-model="item.fase" class="w-full p-2 rounded mt-1">
+                                <option>Ninfa</option>
+                                <option>Adulto</option>
+                            </select>
+                        </div>
+
+                        <div v-else class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-green-300">Qtd.</label>
+                                <input v-model.number="item.qtd" type="number" class="w-full p-2 rounded mt-1">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-green-300">Tamanho</label>
+                                <select v-model="item.tamanho" class="w-full p-2 rounded mt-1">
+                                    <option>Pequena</option>
+                                    <option>Média</option>
+                                    <option>Grande</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="item.tipo === 'Doença' || item.tipo === 'Daninha'">
+                        <label class="block text-xs text-green-300">Nível de Infestação</label>
+                        <select v-model="item.nivel" class="w-full p-2 rounded mt-1">
+                            <option>Baixo</option>
+                            <option>Médio</option>
+                            <option>Alto</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Botão Gerar PDF -->
-    <div class="fixed bottom-0 left-0 w-full p-4 bg-green-950 border-t border-green-800">
-        <button @click="generatePDF" class="w-full bg-white text-green-900 font-bold py-4 rounded shadow-xl text-lg uppercase tracking-widest hover:bg-gray-200 transition">
-            Gerar Relatório PDF
-        </button>
-    </div>
-
-</div>
-
-<script>
-const { createApp } = Vue;
-
-createApp({
-    data() {
-        return {
-            today: new Date().toISOString().split('T')[0],
-            errors: {},
-            form: {
-                tecnico: '',
-                data: new Date().toISOString().split('T')[0],
-                talhao: '',
-                cultura: '',
-                pontos: null
-            },
-            items: [],
-            photoFiles: [], // Armazena { name: string, dataURL: string (base64) }
-            // BASES DE DADOS (MT) - LISTA COMPLETA (Omitida aqui por brevidade, mas está completa no código real)
-            lists: {
-                Soja: { /* ... */ },
-                Milho: { /* ... */ }
-            }
-        }
-    },
-    methods: {
-        resetItems() { this.items = []; },
-        addItem() { this.items.push({ tipo: 'Praga', nome: '', qtd: '', tamanho: '', nivel: 'Baixo', fase: 'Ninfa', oviposicao: false }); },
-        removeItem(index) { this.items.splice(index, 1); },
-        getList(tipo) { return this.lists[this.form.cultura][tipo] || []; },
-        isMoscaBranca(nome) { return nome && nome.toLowerCase().includes('mosca-branca'); },
-        isPercevejo(nome) { return nome && nome.toLowerCase().includes('percevejo'); },
-        
-        // --- NOVO: Lógica de Upload de Fotos (Corrigida) ---
-        handleFileUpload(event) {
-            const files = event.target.files;
-            const MAX_FILES = 5;
-            const MAX_SIZE_MB = 10;
-            const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-
-                if (this.photoFiles.length >= MAX_FILES) {
-                    alert(`Limite de ${MAX_FILES} fotos atingido.`);
-                    break;
-                }
-                
-                if (file.size > MAX_SIZE_BYTES) {
-                    alert(`O arquivo ${file.name} excede o limite de ${MAX_SIZE_MB}MB e será ignorado.`);
-                    continue;
-                }
-
-                // Conversão para Data URL (Base64)
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    this.photoFiles.push({ name: file.name, dataURL: e.target.result });
-                };
-                reader.readAsDataURL(file);
-            }
-            event.target.value = ''; 
-        },
-
-        removePhoto(index) {
-            this.photoFiles.splice(index, 1);
-        },
-
-        // --- VALIDAÇÃO (Melhorada) ---
-        validateForm() {
-            this.errors = {};
-            if (!this.form.tecnico || this.form.tecnico.length < 3) this.errors.tecnico = true;
-            if (!this.form.data || new Date(this.form.data) > new Date()) this.errors.data = true;
-            if (!this.form.talhao || this.form.talhao.length < 1) this.errors.talhao = true;
-            if (!this.form.cultura) this.errors.cultura = true;
-            if (!this.form.pontos || this.form.pontos <= 0) this.errors.pontos = true;
-            
-            return Object.keys(this.errors).length === 0;
-        },
-
-        // --- GERAÇÃO DE PDF (Sincronização de Imagem e Uppercase) ---
-        async generatePDF() {
-            if (!this.validateForm()) {
-                alert('ATENÇÃO: Por favor, preencha corretamente todos os campos obrigatórios (marcados em vermelho) antes de gerar o relatório.');
-                return;
-            }
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const margin = 14;
-            let currentY = 50;
-            const pageWidth = doc.internal.pageSize.getWidth();
-
-            // Cabeçalho PDF
-            doc.setFillColor(22, 101, 52); 
-            doc.rect(0, 0, pageWidth, 40, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(22);
-            doc.text("RELATÓRIO DE MONITORAMENTO", pageWidth / 2, 20, null, null, "center");
-            
-            // Dados do Relatório
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(12);
-            // Nome do Técnico em MAIÚSCULAS
-            doc.text(`Técnico: ${this.form.tecnico.toUpperCase()}`, margin, currentY); currentY += 8; 
-            doc.text(`Data: ${this.form.data.split('-').reverse().join('/')}`, margin, currentY); currentY += 8;
-            doc.text(`Talhão: ${this.form.talhao}`, pageWidth / 2, currentY - 16);
-            doc.text(`Cultura: ${this.form.cultura}`, pageWidth / 2, currentY - 8);
-            doc.text(`Pontos: ${this.form.pontos || 0}`, margin, currentY); currentY += 10;
-
-
-            // Tabela de Ocorrências
-            const rows = this.items.map(item => {
-                let detalhes = "";
-                if (item.tipo === 'Praga') {
-                    let ovi = item.oviposicao ? "[OVIPOSIÇÃO: SIM]" : "[OVIPOSIÇÃO: NÃO]";
-                    if (this.isMoscaBranca(item.nome)) detalhes = `Infestação: ${item.nivel} ${ovi}`;
-                    else if (this.isPercevejo(item.nome)) detalhes = `Fase: ${item.fase} ${ovi}`;
-                    else detalhes = `Qtd: ${item.qtd || '-'} | Tam: ${item.tamanho || '-'} ${ovi}`;
-                } else {
-                    detalhes = `Infestação: ${item.nivel || '-'}`;
-                }
-                return [item.tipo, item.nome, detalhes];
-            });
-
-            doc.autoTable({
-                startY: currentY,
-                head: [['Categoria', 'Identificação', 'Detalhes / Contagem']],
-                body: rows,
-                headStyles: { fillColor: [22, 101, 52] },
-                theme: 'grid',
-                didDrawPage: (data) => {
-                    currentY = data.cursor.y;
-                }
-            });
-            currentY = doc.autoTable.previous.finalY + 10;
-            
-            // Inclusão de Fotos (POR ÚLTIMO)
-            if (this.photoFiles.length > 0) {
-                // Adiciona uma nova página se não houver espaço suficiente para o título
-                if (currentY + 20 > doc.internal.pageSize.getHeight() - margin) {
-                    doc.addPage();
-                    currentY = margin;
-                }
-
-                doc.setFontSize(16);
-                doc.setTextColor(22, 101, 52);
-                doc.text("ANEXO: FOTOS DO MONITORAMENTO", margin, currentY); currentY += 10;
-                
-                for (let i = 0; i < this.photoFiles.length; i++) {
-                    const file = this.photoFiles[i];
-                    const imgData = file.dataURL;
-
-                    // Para calcular a altura correta e gerenciar quebras de página
-                    const ratio = 80 / 210; // Proporção da largura da imagem no PDF
-                    
-                    // Cria um elemento Image temporário para obter as dimensões originais
-                    const imgTemp = new Image();
-                    imgTemp.src = imgData;
-                    
-                    // Largura fixa de 80mm e altura proporcional
-                    const imgWidth = 80; 
-                    const imgHeight = (imgTemp.height * imgWidth) / imgTemp.width;
-                    
-                    // Checa se precisa de nova página
-                    if (currentY + imgHeight + 5 > doc.internal.pageSize.getHeight() - margin) {
-                        doc.addPage();
-                        currentY = margin;
-                    }
-                    
-                    doc.addImage(imgData, 'JPEG', margin, currentY, imgWidth, imgHeight);
-                    currentY += imgHeight + 5;
-                }
-            }
-
-
-            // Nome do Arquivo PDF (Ajustado)
-            const talhaoSafe = this.form.talhao.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-            const dataSafe = this.form.data.split('-').reverse().join(''); // DDMMYYYY
-            const fileName = `Relatorio_${talhaoSafe}_${dataSafe}.pdf`;
-            
-            doc.save(fileName);
-        }
-    }
-    // ... Omissão da 'lists' completa para brevidade ...
-}).mount('#app');
-// Registro do Service Worker (PWA)
-if ('serviceWorker' in navigator) {
-    // ... Código sw.js ...
-}
-</script>
-</body>
-</html>
+        <!-- FOTOS AO FINAL -->
+        <section class="mb-24 p-4 mt-8 bg-green-900 border border-green-700 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold
