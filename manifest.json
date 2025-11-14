@@ -1,0 +1,15 @@
+{
+  "name": "Monitoramento MT",
+  "short_name": "Monitoramento",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#022c22",
+  "theme_color": "#064e3b",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/188/188333.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
